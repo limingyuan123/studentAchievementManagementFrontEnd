@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成绩数据库管理系统</title>
+    <link rel="stylesheet" href="./static/element-ui/theme-chalk/index.css"  type="text/css">
+</head>
+<body>
+    <div id="app">
+    <el-card style="display: flex;justify-content: center;align-items: center;">
+        <span>学生成绩展示</span> 
+        <el-button type="primary" plain @click="addStudentVisible=true">增加学生成绩信息</el-button>
+        <el-divider></el-divider>
+        <el-table
+        :data="studentList"        
+        style="width: 100%">
+        <el-table-column
+        prop="name"
+        label="学生姓名"
+        width="120">
+        </el-table-column>
+        <el-table-column
+        prop="mathematics"
+        label="数学成绩"
+        width="120">
+        </el-table-column>
+        <el-table-column
+        prop="english"
+        label="英语成绩"
+        width="120">
+        </el-table-column>
+        <el-table-column
+        prop="language"
+        label="语文成绩"
+        width="300">
+        </el-table-column>
+        <el-table-column
+        label="操作"
+        width="100">
+        <template slot-scope="scope">
+            <el-button @click="editStudent(scope.row)" type="text" size="small">编辑</el-button>
+            <el-button @click="deleteStudent(scope.row)" type="text" size="small">删除</el-button>
+        </template>
+        </el-table-column>
+        </el-table>
+    </el-card>
+    <el-dialog
+        title="增加学生信息"
+        :visible.sync="addStudentVisible"
+        width="50%"
+        >
+        <el-form :label-position="labelPosition" label-width="auto" ref="formAddStudent"
+        :model="formAddStudent">
+            <el-form-item label="学生名：">
+                <el-input v-model="formAddStudent.name"></el-input>
+            </el-form-item>
+            <el-form-item label="数学成绩：">
+                <el-input v-model="formAddStudent.mathematics"></el-input>
+            </el-form-item>
+            <el-form-item label="英语成绩：">
+                <el-input v-model="formAddStudent.english"></el-input>
+            </el-form-item>
+            <el-form-item label="语文成绩：">
+                <el-input v-model="formAddStudent.language"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="addStudent">提交</el-button>
+                <el-button @click="resetForm('formAddStudent')">重置</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+    <el-dialog
+        title="编辑学生信息"
+        :visible.sync="editStudentVisible"
+        width="50%"
+        >
+        <el-form :label-position="labelPosition" label-width="auto" ref="formEditStudent" 
+        :model="formEditStudent">
+            <el-form-item label="学生名称：">
+                <el-input v-model="formEditStudent.name"></el-input>
+            </el-form-item>
+            <el-form-item label="数学成绩：">
+                <el-input v-model="formEditStudent.mathematics"></el-input>
+            </el-form-item>
+            <el-form-item label="英语成绩：">
+                <el-input v-model="formEditStudent.english"></el-input>
+            </el-form-item>
+            <el-form-item label="语文成绩：">
+                <el-input v-model="formEditStudent.language"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="updateStudent">更新</el-button>
+                <el-button @click="resetForm('formEditStudent')">重置</el-button>
+            </el-form-item>
+        </el-form>
+    </el-dialog>
+    </div>
+    <script src="./static/js/axios.min.js"></script>
+    <script src="./static/js/vue.min.js"></script>
+    <script src="./static/element-ui/index.js"></script>
+    <script>
+        new Vue({
+            el:'#app',
+            data(){
+                return{
+                    studentList:[],
+                    addStudentVisible: false,
+                    editStudentVisible: false,
+                    labelPosition: 'right',
+                    formAddStudent: {
+                        name: '',
+                        mathematics: '',
+                        english: '',
+                        language: '',
+                    },
+                    formEditStudent:'',
+                }
+            },
+            methods: {
+                //查询学生数组
+                getStudentList(){
+                    let _this = this;
+                    axios.get('http://localhost:8088/getStudents')
+                    .then(res => {
+                        if(res.data.code === 0){
+                            _this.studentList = res.data.data;
+                        }else if(res.data.code === -1){
+                            _this.$message({
+                                type:'success',
+                                message:'载入信息成功',
+                            })
+                        }
+                    })
+                },
+                //增加学生信息
+                addStudent(){
+                    let _this = this;
+                    axios.post('http://localhost:8088/addStudent', _this.formAddStudent)
+                    .then(res => {
+                        if(res.data.code === 0){
+                            _this.$message({
+                                type:'success',
+                                message:'增加学生信息成功',
+                            })
+                            //更新一下student 调用getStudents接口使用数据库的select方法
+                            _this.getStudentList();
+                        }else if(res.data.code === -1){
+                            _this.$message({
+                                type:'error',
+                                message:`增加学生信息失败,失败原因：${res.data.message}`,
+                            })
+                        }
+                        _this.addStudentVisible = false;
+                        _this.formAddStudent = {};
+                    })
+                },
+                //重置新增学生信息
+                resetForm(formName) {
+                    this.formAddStudent = {};
+                },
+                //删除学生信息
+                deleteStudent(row){
+                    let _this = this;
+                    let obj = {uid:row.uid};
+                    axios.delete(`http://localhost:8088/deleteStudent?uid=${row.uid}`)
+                    .then(res => {
+                        if(res.data.code === 0){
+                            _this.$message({
+                                type:'success',
+                                message:'删除学生信息成功',
+                            })
+                            this.getStudentList();
+                        }else if(res.data.code === -1){
+                            _this.$message({
+                                type:'error',
+                                message:`删除学生信息失败,失败原因：${res.data.message}`,                                
+                            })
+                        }else if(res.data.code === -2){
+                            _this.$message({
+                                type:'error',
+                                message:`删除学生信息失败,失败原因：${res.data.message}`,
+                            })
+                        }
+                    })
+                },
+                //编辑学生信息
+                editStudent(row){
+                    this.editStudentVisible = true;
+                    this.formEditStudent = row;
+                },
+                //更新学生信息
+                updateStudent(row) {
+                    console.log(row);
+                    let _this = this;
+                    axios.post('http://localhost:8088/updateStudent', _this.formEditStudent)
+                    .then(res => {
+                        if(res.data.code === 0){
+                            _this.$message({
+                                type:'success',
+                                message:'更新学生信息成功',
+                            })
+                            //更新一下student 调用getStudents接口使用数据库的select方法
+                            _this.getStudentList();
+                        }else if(res.data.code === -1){
+                            _this.$message({
+                                type:'error',
+                                message:`更新学生信息失败,失败原因：${res.data.message}`,
+                            })
+                        }
+                        this.getStudentList();
+                        _this.editStudentVisible = false;
+                    })
+                },
+            },
+            mounted() {
+                //载入页面即获取学生数组,用于初始化展示
+                this.getStudentList();
+            },
+        })
+    </script>
+</body>
+</html>
